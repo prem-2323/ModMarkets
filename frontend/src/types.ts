@@ -25,6 +25,7 @@ export interface Mod {
   description: string;
   downloadsCount: number;
   totalEarnings: number;
+  sharemodsLink?: string;
   authorId: string;
   authorName: string;
   createdAt: string;

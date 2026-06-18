@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Gamepad2, Layers, Download, CheckCircle2, Edit3, Trash2, X, Filter } from "lucide-react";
 import { Mod, UserProfile } from "../types";
 
@@ -16,6 +16,34 @@ export default function LibraryView({ user, onEditMod, onRefreshUser, onOpenAuth
   const [selectedPlatform, setSelectedPlatform] = useState("All");
   const [selectedMod, setSelectedMod] = useState<Mod | null>(null);
   const [downloadSuccessLog, setDownloadSuccessLog] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/mods")
+      .then((res) => res.json())
+      .then((data) => {
+        const mappedMods: Mod[] = data.map((mod: any) => ({
+          id: mod._id,
+          title: mod.title,
+          gameName: mod.gameName,
+          version: mod.version,
+          platform: mod.platform,
+          description: mod.description || "",
+          screenshots: mod.screenshots || [],
+          authorId: mod.authorId,
+          authorName: mod.authorName,
+          downloadsCount: mod.downloadsCount || 0,
+          price: mod.price || 0,
+          createdAt: mod.createdAt,
+          fileName: mod.originalFileName || "Unknown",
+          fileSize: mod.fileSize || "Unknown",
+          platformFee: 0,
+          totalEarnings: 0,
+          sharemodsLink: mod.sharemodsLink
+        }));
+        setMods(mappedMods);
+      })
+      .catch(console.error);
+  }, []);
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -51,10 +79,23 @@ export default function LibraryView({ user, onEditMod, onRefreshUser, onOpenAuth
       onOpenAuth();
       return;
     }
-    setDownloadSuccessLog(`Successfully downloaded - ${mod.fileName}!`);
-    setMods((old) =>
-      old.map((m) => (m.id === mod.id ? { ...m, downloadsCount: m.downloadsCount + 1 } : m))
-    );
+    if (mod.sharemodsLink) {
+      window.open(mod.sharemodsLink, "_blank");
+    }
+    fetch(`http://localhost:5000/api/mods/${mod.id}/download`, {
+      method: "POST"
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setMods((prev) =>
+            prev.map((m) =>
+              m.id === mod.id ? { ...m, downloadsCount: data.downloadsCount } : m
+            )
+          );
+        }
+      })
+      .catch(console.error);
   };
 
   return (
@@ -157,7 +198,11 @@ export default function LibraryView({ user, onEditMod, onRefreshUser, onOpenAuth
               {/* Mod Card Image */}
               <div className="w-full h-40 bg-slate-950 overflow-hidden">
                 <img
-                  src={mod.screenshots[0] || "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80"}
+                  src={
+                    mod.screenshots[0]
+                      ? `http://localhost:5000${mod.screenshots[0]}`
+                      : "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80"
+                  }
                   alt={mod.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
@@ -226,7 +271,11 @@ export default function LibraryView({ user, onEditMod, onRefreshUser, onOpenAuth
               {/* Screenshot */}
               <div className="w-full h-48 bg-slate-950 rounded-lg overflow-hidden">
                 <img
-                  src={selectedMod.screenshots[0] || "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80"}
+                  src={
+                    selectedMod.screenshots[0]
+                      ? `http://localhost:5000${selectedMod.screenshots[0]}`
+                      : "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80"
+                  }
                   alt={selectedMod.title}
                   className="w-full h-full object-cover"
                 />

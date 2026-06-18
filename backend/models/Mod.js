@@ -15,6 +15,8 @@ const ModSchema = new mongoose.Schema({
   sharemodsCode: String,
   sharemodsLink: String,
 
+  fileSize: String,
+
   screenshots: [String],
 
   authorId: String,

@@ -112,7 +112,9 @@ export default function UploadView({ onUploadSuccess, existingMod }: UploadViewP
       return;
     }
 
-    if (!modFile) {
+    const isEditing = !!existingMod;
+
+    if (!isEditing && !modFile) {
       setErrorMsg("Please upload a mod file");
       return;
     }
@@ -147,16 +149,17 @@ export default function UploadView({ onUploadSuccess, existingMod }: UploadViewP
 
       setUploadProgress(50);
 
-      const response = await fetch(
-        "http://localhost:5000/api/mods/upload",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        }
-      );
+      const url = isEditing
+        ? `http://localhost:5000/api/mods/${existingMod.id}`
+        : "http://localhost:5000/api/mods/upload";
+
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
 
       const text = await response.text();
       console.log("SERVER RESPONSE:", text);
