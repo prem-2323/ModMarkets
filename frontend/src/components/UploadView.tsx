@@ -117,32 +117,68 @@ export default function UploadView({ onUploadSuccess, existingMod }: UploadViewP
       return;
     }
 
-    // Simulate upload progress
-    setUploadProgress(5);
-    const interval = setInterval(() => {
-      setUploadProgress((old) => {
-        if (old === null) return null;
-        if (old >= 95) {
-          clearInterval(interval);
-          return 95;
-        }
-        const step = Math.floor(Math.random() * 15) + 5;
-        return old + step;
-      });
-    }, 150);
+    setUploadProgress(10);
 
     try {
+      const formData = new FormData();
+
+      formData.append("title", title);
+      formData.append("gameName", gameName);
+      formData.append("version", version);
+      formData.append("platform", platform);
+      formData.append("price", price);
+      formData.append("description", description);
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("You must be logged in to upload");
+      }
+
+      if (modFile?.content) {
+        formData.append("modFile", modFile.content);
+      }
+
+      formData.append("originalFileName", modFile?.name || "mod.zip");
+
+      formData.append("screenshot1", screenshot1);
+      formData.append("screenshot2", screenshot2);
+      formData.append("screenshot3", screenshot3);
+
+      setUploadProgress(50);
+
+      const response = await fetch(
+        "http://localhost:5000/api/mods/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        }
+      );
+
+      const text = await response.text();
+      console.log("SERVER RESPONSE:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server returned HTML instead of JSON");
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
       setUploadProgress(100);
+      setSuccess(true);
+
       setTimeout(() => {
-        clearInterval(interval);
-        setSuccess(true);
-        setUploadProgress(null);
-        setTimeout(() => {
-          onUploadSuccess();
-        }, 1200);
-      }, 500);
+        onUploadSuccess();
+      }, 1000);
     } catch (err: any) {
-      clearInterval(interval);
       setUploadProgress(null);
       setErrorMsg(err.message || "Upload failed");
     }
